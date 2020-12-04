@@ -1,0 +1,7 @@
+.vscode/settings.json
+*.tgz
+*.tar
+.env
+/sls
+~$*.xlsx
+generated*.json
