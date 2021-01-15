@@ -1,6 +1,7 @@
 @Library('dst-shared@master') _
 
 dockerBuildPipeline {
+        githubPushRepo = "Cray-HPE/hms-shcd-parser"
         repository = "cray"
         imagePrefix = "hms"
         app = "shcd-parser"
