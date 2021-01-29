@@ -80,6 +80,9 @@ func parseSHCDFile() {
 	}
 
 	rowIndex := STARTING_ROW
+	//the hmnSheet.MaxRow variable can/will change just by iterating through the sheet,
+	//so to need to remember the initial hmsSheet.MaxRow value to avoid infinite loop
+	maxRow := hmnSheet.MaxRow
 	for true {
 		sourceCell, err := hmnSheet.Cell(rowIndex, 9)
 		if err != nil {
@@ -125,13 +128,13 @@ func parseSHCDFile() {
 			DestinationPort:     destinationPort.Value,
 		}
 
-		if row == (shcd_parser.HMNRow{}) {
+		if sourceCell.Value != "" {
+			Rows = append(Rows, row)
+		}
+		rowIndex++
+		if rowIndex > maxRow {
 			break
 		}
-
-		Rows = append(Rows, row)
-
-		rowIndex++
 	}
 }
 
