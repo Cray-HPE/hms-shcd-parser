@@ -5,3 +5,4 @@
 /sls
 ~$*.xlsx
 generated*.json
+.idea/
