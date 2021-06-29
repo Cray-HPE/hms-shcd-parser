@@ -49,7 +49,7 @@ RUN set -ex \
 ### Final Stage ###
 
 FROM arti.dev.cray.com/baseos-docker-master-local/alpine:3.13
-LABEL maintainer="Cray, Inc."
+LABEL maintainer="Hewlett Packard Enterprise"
 STOPSIGNAL SIGTERM
 
 COPY --from=builder /go/shcd-parser /usr/local/bin
