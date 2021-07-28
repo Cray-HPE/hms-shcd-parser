@@ -34,9 +34,9 @@ FROM build-base AS base
 RUN go env -w GO111MODULE=auto
 
 # Copy all the necessary files to the image.
-COPY cmd $GOPATH/src/stash.us.cray.com/HMS/hms-shcd-parser/cmd
-COPY pkg $GOPATH/src/stash.us.cray.com/HMS/hms-shcd-parser/pkg
-COPY vendor $GOPATH/src/stash.us.cray.com/HMS/hms-shcd-parser/vendor
+COPY cmd $GOPATH/src/github.com/Cray-HPE/hms-shcd-parser/cmd
+COPY pkg $GOPATH/src/github.com/Cray-HPE/hms-shcd-parser/pkg
+COPY vendor $GOPATH/src/github.com/Cray-HPE/hms-shcd-parser/vendor
 
 ### Build Stage ###
 
@@ -44,7 +44,7 @@ FROM base AS builder
 
 # Now build
 RUN set -ex \
-    && go build -v -i -o shcd-parser stash.us.cray.com/HMS/hms-shcd-parser/cmd/shcd-parser
+    && go build -v -i -o shcd-parser github.com/Cray-HPE/hms-shcd-parser/cmd/shcd-parser
 
 ### Final Stage ###
 
