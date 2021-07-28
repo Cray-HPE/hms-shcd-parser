@@ -28,10 +28,10 @@ import (
 	"io/ioutil"
 	"os"
 
+	shcd_parser "github.com/Cray-HPE/hms-shcd-parser/pkg/shcd-parser"
 	"github.com/namsral/flag"
 	"github.com/tealeg/xlsx/v3"
 	"go.uber.org/zap"
-	shcd_parser "stash.us.cray.com/HMS/hms-shcd-parser/pkg/shcd-parser"
 )
 
 const STARTING_ROW = 20
