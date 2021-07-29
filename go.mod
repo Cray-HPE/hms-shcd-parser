@@ -1,4 +1,4 @@
-module stash.us.cray.com/HMS/hms-shcd-parser
+module github.com/Cray-HPE/hms-shcd-parser
 
 go 1.16
 
