@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2023-06-07
+
+### Changed
+
+- CASMHMS-6036: Switched base image to artifactory.algol60.net/csm-docker/stable/docker.io/library/alpine:3.15
+
 ## [1.8.0] - 2022-01-06
 
 ### Security
