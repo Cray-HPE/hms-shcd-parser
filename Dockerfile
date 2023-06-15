@@ -48,7 +48,7 @@ RUN set -ex \
 
 ### Final Stage ###
 
-FROM artifactory.algol60.net/docker.io/alpine:3.15
+FROM artifactory.algol60.net/csm-docker/stable/docker.io/library/alpine:3.15
 LABEL maintainer="Hewlett Packard Enterprise"
 STOPSIGNAL SIGTERM
 
