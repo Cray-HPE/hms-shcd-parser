@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated image and module dependencies for security updates
 - Updated Go to v1.24
 - Updated README to point to artifactory rather than old DTR
+- Internal tracking ticket: CASMHMS-6416
 
 ## [1.10.0] - 2024-12-04
 
