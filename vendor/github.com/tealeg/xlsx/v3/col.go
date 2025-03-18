@@ -25,7 +25,11 @@ type Col struct {
 // columns in the range min to max (inclusive).  Note, in order for
 // this Col to do anything useful you must set some of its parameters
 // and then apply it to a Sheet by calling sheet.SetColParameters.
+// Column numbers start from 1.
 func NewColForRange(min, max int) *Col {
+	if min < 1 {
+		panic("min col must be >= 1")
+	}
 	if max < min {
 		// Nice try ;-)
 		return &Col{Min: max, Max: min}
@@ -108,7 +112,6 @@ type ColStoreNode struct {
 	Next *ColStoreNode
 }
 
-//
 func (csn *ColStoreNode) findNodeForColNum(num int) *ColStoreNode {
 	switch {
 	case num >= csn.Col.Min && num <= csn.Col.Max:
@@ -330,7 +333,6 @@ func (cs *ColStore) makeWay(node1, node2 *ColStoreNode) {
 		}
 		return
 	}
-	return
 }
 
 func (cs *ColStore) addNode(prev, this, next *ColStoreNode) {

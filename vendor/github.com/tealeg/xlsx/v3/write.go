@@ -7,32 +7,29 @@ import (
 	"time"
 )
 
-// Writes an array to row r. Accepts a pointer to array type 'e',
-// and writes the number of columns to write, 'cols'. If 'cols' is < 0,
-// the entire array will be written if possible. Returns -1 if the 'e'
-// doesn't point to an array, otherwise the number of columns written.
+// Writes a slice to row r. Accepts a slice or a pointer to a slice,
+// and will wirte up to the provided number of columns, 'cols'.  If 'cols' is < 0,
+// the entire slice will be written if possible. Returns -1 if the 'e'
+// is not a slice type, otherwise the number of columns written.
 func (r *Row) WriteSlice(e interface{}, cols int) int {
+	if e == nil {
+		return -1
+	}
 	if cols == 0 {
 		return cols
 	}
-
-	// make sure 'e' is a Ptr to Slice
 	v := reflect.ValueOf(e)
-	if v.Kind() != reflect.Ptr {
-		return -1
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
 	}
-
-	v = v.Elem()
 	if v.Kind() != reflect.Slice {
 		return -1
 	}
-
 	// it's a slice, so open up its values
 	n := v.Len()
 	if cols < n && cols > 0 {
 		n = cols
 	}
-
 	var setCell func(reflect.Value)
 	setCell = func(val reflect.Value) {
 		switch t := val.Interface().(type) {
@@ -47,6 +44,11 @@ func (r *Row) WriteSlice(e interface{}, cols int) int {
 			if cell.SetString(``); t.Valid {
 				cell.SetValue(t.String)
 			}
+		case sql.NullTime:
+			cell := r.AddCell()
+			if cell.SetString(``); t.Valid {
+				cell.SetValue(t.Time)
+			}
 		case sql.NullBool:
 			cell := r.AddCell()
 			if cell.SetString(``); t.Valid {
@@ -57,6 +59,11 @@ func (r *Row) WriteSlice(e interface{}, cols int) int {
 			if cell.SetString(``); t.Valid {
 				cell.SetValue(t.Int64)
 			}
+		case sql.NullInt32:
+			cell := r.AddCell()
+			if cell.SetString(``); t.Valid {
+				cell.SetValue(t.Int32)
+			}
 		case sql.NullFloat64:
 			cell := r.AddCell()
 			if cell.SetString(``); t.Valid {
@@ -64,8 +71,10 @@ func (r *Row) WriteSlice(e interface{}, cols int) int {
 			}
 		default:
 			switch val.Kind() { // underlying type of slice
-			case reflect.String, reflect.Int, reflect.Int8,
-				reflect.Int16, reflect.Int32, reflect.Int64, reflect.Float64, reflect.Float32:
+			case reflect.String,
+				reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+				reflect.Float64, reflect.Float32:
 				cell := r.AddCell()
 				cell.SetValue(val.Interface())
 			case reflect.Bool:
@@ -119,6 +128,11 @@ func (r *Row) WriteStruct(e interface{}, cols int) int {
 			if cell.SetString(``); t.Valid {
 				cell.SetValue(t.String)
 			}
+		case sql.NullTime:
+			cell := r.AddCell()
+			if cell.SetString(``); t.Valid {
+				cell.SetValue(t.Time)
+			}
 		case sql.NullBool:
 			cell := r.AddCell()
 			if cell.SetString(``); t.Valid {
@@ -129,6 +143,11 @@ func (r *Row) WriteStruct(e interface{}, cols int) int {
 			if cell.SetString(``); t.Valid {
 				cell.SetValue(t.Int64)
 			}
+		case sql.NullInt32:
+			cell := r.AddCell()
+			if cell.SetString(``); t.Valid {
+				cell.SetValue(t.Int32)
+			}
 		case sql.NullFloat64:
 			cell := r.AddCell()
 			if cell.SetString(``); t.Valid {
@@ -136,8 +155,10 @@ func (r *Row) WriteStruct(e interface{}, cols int) int {
 			}
 		default:
 			switch f.Kind() {
-			case reflect.String, reflect.Int, reflect.Int8,
-				reflect.Int16, reflect.Int32, reflect.Int64, reflect.Float64, reflect.Float32:
+			case reflect.String,
+				reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+				reflect.Float64, reflect.Float32:
 				cell := r.AddCell()
 				cell.SetValue(f.Interface())
 			case reflect.Bool:

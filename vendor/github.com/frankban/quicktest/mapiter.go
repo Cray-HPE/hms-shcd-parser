@@ -1,6 +1,4 @@
-// Licensed under the MIT license, see LICENCE file for details.
-
-// +build go1.12
+// Licensed under the MIT license, see LICENSE file for details.
 
 package quicktest
 

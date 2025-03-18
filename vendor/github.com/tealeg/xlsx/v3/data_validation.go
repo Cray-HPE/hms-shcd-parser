@@ -1,8 +1,10 @@
 package xlsx
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 type DataValidationType int
@@ -22,10 +24,10 @@ const (
 )
 
 const (
-	// dataValidationFormulaStrLen 255 characters+ 2 quotes
+	// dataValidationFormulaStrLen 255 runes + 2 quotes
 	dataValidationFormulaStrLen = 257
 	// dataValidationFormulaStrLenErr
-	dataValidationFormulaStrLenErr = "data validation must be 0-255 characters"
+	dataValidationFormulaStrLenErr = "data validation must be 0-255 runes"
 )
 
 type DataValidationErrorStyle int
@@ -107,8 +109,8 @@ func (dd *xlsxDataValidation) SetInput(title, msg *string) {
 // List validations do not work in Apple Numbers.
 func (dd *xlsxDataValidation) SetDropList(keys []string) error {
 	formula := "\"" + strings.Join(keys, ",") + "\""
-	if dataValidationFormulaStrLen < len(formula) {
-		return fmt.Errorf(dataValidationFormulaStrLenErr)
+	if dataValidationFormulaStrLen < utf8.RuneCountInString(formula) {
+		return errors.New(dataValidationFormulaStrLenErr)
 	}
 	dd.Formula1 = formula
 	dd.Type = convDataValidationType(dataValidationTypeList)

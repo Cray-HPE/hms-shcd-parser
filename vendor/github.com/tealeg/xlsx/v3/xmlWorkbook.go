@@ -141,7 +141,7 @@ type xlsxDefinedName struct {
 	Help              string `xml:"help,attr,omitempty"`
 	ShortcutKey       string `xml:"shortcutKey,attr,omitempty"`
 	StatusBar         string `xml:"statusBar,attr,omitempty"`
-	LocalSheetID      int    `xml:"localSheetId,attr,omitempty"`
+	LocalSheetID      *int   `xml:"localSheetId,attr"`
 	FunctionGroupID   int    `xml:"functionGroupId,attr,omitempty"`
 	Function          bool   `xml:"function,attr,omitempty"`
 	Hidden            bool   `xml:"hidden,attr,omitempty"`
@@ -179,7 +179,7 @@ func worksheetFileForSheet(sheet xlsxSheet, worksheets map[string]*zip.File, she
 // getWorksheetFromSheet() is an internal helper function to open a
 // sheetN.xml file, referred to by an xlsx.xlsxSheet struct, from the XLSX
 // file and unmarshal it an xlsx.xlsxWorksheet struct
-func getWorksheetFromSheet(sheet xlsxSheet, worksheets map[string]*zip.File, sheetXMLMap map[string]string, rowLimit int) (*xlsxWorksheet, error) {
+func getWorksheetFromSheet(sheet xlsxSheet, worksheets map[string]*zip.File, sheetXMLMap map[string]string, rowLimit int, valueOnly bool) (*xlsxWorksheet, error) {
 	var r io.Reader
 	var decoder *xml.Decoder
 	var worksheet *xlsxWorksheet
@@ -193,7 +193,7 @@ func getWorksheetFromSheet(sheet xlsxSheet, worksheets map[string]*zip.File, she
 
 	f := worksheetFileForSheet(sheet, worksheets, sheetXMLMap)
 	if f == nil {
-		return wrap(fmt.Errorf("Unable to find sheet '%s'", sheet))
+		return wrap(fmt.Errorf("unable to find sheet '%s'", sheet))
 	}
 	if rc, err := f.Open(); err != nil {
 		return wrap(fmt.Errorf("file.Open: %w", err))
@@ -204,6 +204,13 @@ func getWorksheetFromSheet(sheet xlsxSheet, worksheets map[string]*zip.File, she
 
 	if rowLimit != NoRowLimit {
 		r, err = truncateSheetXML(r, rowLimit)
+		if err != nil {
+			return wrap(err)
+		}
+	}
+
+	if valueOnly {
+		r, err = truncateSheetXMLValueOnly(r)
 		if err != nil {
 			return wrap(err)
 		}

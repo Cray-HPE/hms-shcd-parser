@@ -245,13 +245,6 @@ func parseFullNumberFormatString(numFmt string) *parsedNumberFormat {
 	parsedNumFmt := &parsedNumberFormat{
 		numFmt: numFmt,
 	}
-	if isTimeFormat(numFmt) {
-		// Time formats cannot have multiple groups separated by semicolons, there is only one format.
-		// Strings are unaffected by the time format.
-		parsedNumFmt.isTimeFormat = true
-		parsedNumFmt.textFormat, _ = parseNumberFormatSection("general")
-		return parsedNumFmt
-	}
 
 	var fmtOptions []*formatOptions
 	formats, err := splitFormatOnSemicolon(numFmt)
@@ -277,6 +270,7 @@ func parseFullNumberFormatString(numFmt string) *parsedNumberFormat {
 
 	if len(fmtOptions) == 1 {
 		// If there is only one option, it is used for all
+		parsedNumFmt.isTimeFormat = fmtOptions[0].isTimeFormat
 		parsedNumFmt.positiveFormat = fmtOptions[0]
 		parsedNumFmt.negativeFormat = fmtOptions[0]
 		parsedNumFmt.zeroFormat = fmtOptions[0]
@@ -291,6 +285,7 @@ func parseFullNumberFormatString(numFmt string) *parsedNumberFormat {
 		// When negative numbers now have their own format, they should become positive before having the format applied.
 		// The format will contain a negative sign if it is desired, but they may be colored red or wrapped in
 		// parenthesis instead.
+		parsedNumFmt.isTimeFormat = fmtOptions[0].isTimeFormat
 		parsedNumFmt.negativeFormatExpectsPositive = true
 		parsedNumFmt.positiveFormat = fmtOptions[0]
 		parsedNumFmt.negativeFormat = fmtOptions[1]
@@ -299,6 +294,7 @@ func parseFullNumberFormatString(numFmt string) *parsedNumberFormat {
 	} else if len(fmtOptions) == 3 {
 		// If there are three formats, the first is used for positive, the second gets used as a negative format,
 		// the third is for negative, and strings are not formatted.
+		parsedNumFmt.isTimeFormat = fmtOptions[0].isTimeFormat
 		parsedNumFmt.negativeFormatExpectsPositive = true
 		parsedNumFmt.positiveFormat = fmtOptions[0]
 		parsedNumFmt.negativeFormat = fmtOptions[1]
@@ -307,6 +303,7 @@ func parseFullNumberFormatString(numFmt string) *parsedNumberFormat {
 	} else {
 		// With four options, the first is positive, the second is negative, the third is zero, and the fourth is strings
 		// Negative numbers should be still become positive before having the negative formatting applied.
+		parsedNumFmt.isTimeFormat = fmtOptions[0].isTimeFormat
 		parsedNumFmt.negativeFormatExpectsPositive = true
 		parsedNumFmt.positiveFormat = fmtOptions[0]
 		parsedNumFmt.negativeFormat = fmtOptions[1]
@@ -352,15 +349,16 @@ var fallbackErrorFormat = &formatOptions{
 // Ideally more and more of the format string would be parsed out here into settings until there is no remainder string
 // at all.
 // Features that this supports:
-// - Time formats are detected, and marked in the options. Time format strings are handled when doing the formatting.
-//   The logic to detect time formats is currently not correct, and can catch formats that are not time formats as well
-//   as miss formats that are time formats.
-// - Color formats are detected and removed.
-// - Currency annotations are handled properly.
-// - Literal strings wrapped in quotes are handled and put into prefix or suffix.
-// - Numbers that should be percent are detected and marked in the options.
-// - Conditionals are detected and removed, but they are not obeyed. The conditional groups will be used just like the
-//   positive;negative;zero;string format groups. Here is an example of a conditional format: "[Red][<=100];[Blue][>100]"
+//   - Time formats are detected, and marked in the options. Time format strings are handled when doing the formatting.
+//     The logic to detect time formats is currently not correct, and can catch formats that are not time formats as well
+//     as miss formats that are time formats.
+//   - Color formats are detected and removed.
+//   - Currency annotations are handled properly.
+//   - Literal strings wrapped in quotes are handled and put into prefix or suffix.
+//   - Numbers that should be percent are detected and marked in the options.
+//   - Conditionals are detected and removed, but they are not obeyed. The conditional groups will be used just like the
+//     positive;negative;zero;string format groups. Here is an example of a conditional format: "[Red][<=100];[Blue][>100]"
+//
 // Decoding the actual number formatting portion is out of scope, that is placed into reducedFormatString and is used
 // when formatting the string. The string there will be reduced to only the things in the formattingCharacters array.
 // Everything not in that array has been parsed out and put into formatOptions.
@@ -372,6 +370,13 @@ func parseNumberFormatSection(fullFormat string) (*formatOptions, error) {
 		return &formatOptions{
 			fullFormatString:    "general",
 			reducedFormatString: "general",
+		}, nil
+	}
+	if isTimeFormat(reducedFormat) {
+		return &formatOptions{
+			fullFormatString:    fullFormat,
+			isTimeFormat:        true,
+			reducedFormatString: reducedFormat,
 		}, nil
 	}
 
@@ -417,7 +422,7 @@ var formattingCharacters = []string{"0/", "#/", "?/", "E-", "E+", "e-", "e+", "0
 // redundant here: ee, gg, ggg, rr, ss, mm, hh, yyyy, dd, ddd, dddd, mm, mmm, mmmm, mmmmm, ss.0000, ss.000, ss.00, ss.0
 // The .00 type format is very tricky, because it only counts if it comes after ss or s or [ss] or [s]
 // .00 is actually a valid number format by itself.
-var timeFormatCharacters = []string{"M", "D", "Y", "m", "d", "yy", "h", "m", "AM/PM", "A/P", "am/pm", "a/p", "r", "g", "e", "b1", "b2", "[hh]", "[h]", "[mm]", "[m]",
+var timeFormatCharacters = []string{"M", "D", "Y", "YY", "YYYY", "MM", "yyyy", "m", "d", "yy", "h", "m", "AM/PM", "A/P", "am/pm", "a/p", "r", "g", "e", "b1", "b2", "[hh]", "[h]", "[mm]", "[m]",
 	"s.0000", "s.000", "s.00", "s.0", "s", "[ss].0000", "[ss].000", "[ss].00", "[ss].0", "[ss]", "[s].0000", "[s].000", "[s].00", "[s].0", "[s]", "上", "午", "下"}
 
 func splitFormatAndSuffixFormat(format string) (string, string) {
@@ -518,7 +523,7 @@ func (fullFormat *parsedNumberFormat) parseTime(value string, date1904 bool) (st
 		return value, err
 	}
 	val := TimeFromExcelTime(f, date1904)
-	format := fullFormat.numFmt
+	format := fullFormat.positiveFormat.fullFormatString
 	// Replace Excel placeholders with Go time placeholders.
 	// For example, replace yyyy with 2006. These are in a specific order,
 	// due to the fact that m is used in month, minute, and am/pm. It would
@@ -530,19 +535,33 @@ func (fullFormat *parsedNumberFormat) parseTime(value string, date1904 bool) (st
 	// turn them to what they should actually be.
 	// Based off: http://www.ozgrid.com/Excel/CustomFormats.htm
 	replacements := []struct{ xltime, gotime string }{
+		{"YYYY", "2006"},
 		{"yyyy", "2006"},
+		{"YY", "06"},
 		{"yy", "06"},
+		{"MMMM", "%%%%"},
 		{"mmmm", "%%%%"},
+		{"DDDD", "&&&&"},
 		{"dddd", "&&&&"},
+		{"DD", "02"},
 		{"dd", "02"},
+		{"D", "2"},
 		{"d", "2"},
+		{"MMM", "Jan"},
 		{"mmm", "Jan"},
+		{"MMSS", "0405"},
 		{"mmss", "0405"},
+		{"SS", "05"},
 		{"ss", "05"},
+		{"MM:", "04:"},
 		{"mm:", "04:"},
+		{":MM", ":04"},
 		{":mm", ":04"},
+		{"MM", "01"},
 		{"mm", "01"},
+		{"AM/PM", "pm"},
 		{"am/pm", "pm"},
+		{"M/", "1/"},
 		{"m/", "1/"},
 		{"%%%%", "January"},
 		{"&&&&", "Monday"},
@@ -580,7 +599,7 @@ func skipToRune(runes []rune, r rune) (int, error) {
 			return i, nil
 		}
 	}
-	return -1, fmt.Errorf("No closing quote found")
+	return -1, fmt.Errorf("no closing quote found")
 }
 
 // isTimeFormat checks whether an Excel format string represents a time.Time.

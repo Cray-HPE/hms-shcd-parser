@@ -270,7 +270,7 @@ type xlsxDataValidations struct {
 // The list validation type would more commonly be called "a drop down box."
 type xlsxDataValidation struct {
 	// A boolean value indicating whether the data validation allows the use of empty or blank
-	//entries. 1 means empty entries are OK and do not violate the validation constraints.
+	// entries. 1 means empty entries are OK and do not violate the validation constraints.
 	AllowBlank bool `xml:"allowBlank,attr,omitempty"`
 	// A boolean value indicating whether to display the input prompt message.
 	ShowInputMessage bool `xml:"showInputMessage,attr,omitempty"`
@@ -355,6 +355,7 @@ type xlsxHyperlink struct {
 	Reference      string `xml:"ref,attr"`
 	DisplayString  string `xml:"display,attr,omitempty"`
 	Tooltip        string `xml:"tooltip,attr,omitempty"`
+	Location       string `xml:"location,attr,omitempty"`
 }
 
 // Return the cartesian extent of a merged cell range from its origin
@@ -498,7 +499,7 @@ func makeXMLAttr(fv reflect.Value, parentName, name string) (xmlwriter.Attr, err
 	case reflect.String:
 		attr.Value = fv.String()
 	default:
-		return attr, fmt.Errorf("Not yet handled %s.%s (%s)", parentName, name, fv.Kind())
+		return attr, fmt.Errorf("not yet handled %s.%s (%s)", parentName, name, fv.Kind())
 
 	}
 
@@ -594,7 +595,7 @@ func emitStructAsXML(v reflect.Value, name, xmlNS string) (xmlwriter.Elem, error
 				Name:  "xmlns",
 				Value: xmlNS,
 			})
-		case "SheetData", "MergeCells":
+		case "SheetData", "MergeCells", "DataValidations", "AutoFilter", "Hyperlinks":
 			// Skip SheetData here, we explicitly generate this in writeXML below
 			// Microsoft Excel considers a mergeCells element before a sheetData element to be
 			// an error and will fail to open the document, so we'll be back with this data
@@ -635,7 +636,7 @@ func emitStructAsXML(v reflect.Value, name, xmlNS string) (xmlwriter.Elem, error
 				elem.Content = append(elem.Content, xmlwriter.Text(fv.String()))
 				output.Content = append(output.Content, elem)
 			default:
-				return output, fmt.Errorf("Todo with unhandled kind %s : %s", fv.Kind(), name)
+				return output, fmt.Errorf("todo with unhandled kind %s : %s", fv.Kind(), name)
 			}
 		}
 	}
@@ -646,7 +647,7 @@ func emitStructAsXML(v reflect.Value, name, xmlNS string) (xmlwriter.Elem, error
 func (worksheet *xlsxWorksheet) makeXlsxRowFromRow(row *Row, styles *xlsxStyleSheet, refTable *RefTable) (*xlsxRow, error) {
 	xRow := &xlsxRow{}
 	xRow.R = row.num + 1
-	if row.isCustom {
+	if row.customHeight {
 		xRow.CustomHeight = true
 		xRow.Ht = fmt.Sprintf("%g", row.GetHeight())
 	}
@@ -691,6 +692,8 @@ func (worksheet *xlsxWorksheet) makeXlsxRowFromRow(row *Row, styles *xlsxStyleSh
 				xC.V = strconv.Itoa(refTable.AddString(cell.Value))
 			} else if len(cell.RichText) > 0 {
 				xC.V = strconv.Itoa(refTable.AddRichText(cell.RichText))
+			} else {
+				xC.V = strconv.Itoa(refTable.AddString(""))
 			}
 			xC.T = "s"
 		case CellTypeNumeric:
@@ -714,7 +717,7 @@ func (worksheet *xlsxWorksheet) makeXlsxRowFromRow(row *Row, styles *xlsxStyleSh
 		xRow.C = append(xRow.C, xC)
 
 		return nil
-	})
+	}, SkipEmptyCells)
 
 	return xRow, err
 }
@@ -752,12 +755,41 @@ func (worksheet *xlsxWorksheet) WriteXML(xw *xmlwriter.Writer, s *Sheet, styles 
 		}, SkipEmptyRows),
 		xw.EndElem("sheetData"),
 		func() error {
+			if worksheet.AutoFilter != nil {
+				autoFilter, err := emitStructAsXML(reflect.ValueOf(worksheet.AutoFilter), "autoFilter", "")
+				if err != nil {
+					return err
+				}
+				if err := xw.Write(autoFilter); err != nil {
+					return err
+				}
+			}
 			if worksheet.MergeCells != nil {
 				mergeCells, err := emitStructAsXML(reflect.ValueOf(worksheet.MergeCells), "mergeCells", "")
 				if err != nil {
 					return err
 				}
-				return xw.Write(mergeCells)
+				if err := xw.Write(mergeCells); err != nil {
+					return err
+				}
+			}
+			if worksheet.DataValidations != nil {
+				dataValidation, err := emitStructAsXML(reflect.ValueOf(worksheet.DataValidations), "dataValidations", "")
+				if err != nil {
+					return err
+				}
+				if err := xw.Write(dataValidation); err != nil {
+					return err
+				}
+			}
+			if worksheet.Hyperlinks != nil {
+				hyperlinks, err := emitStructAsXML(reflect.ValueOf(worksheet.Hyperlinks), "hyperlinks", "")
+				if err != nil {
+					return err
+				}
+				if err := xw.Write(hyperlinks); err != nil {
+					return err
+				}
 			}
 			return nil
 		}(),
